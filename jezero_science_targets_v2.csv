@@ -1,0 +1,8 @@
+﻿"target_id","name","category","lat","lon","elevation_m","scientific_interest_score","priority_level","description"
+"SCI_001","Octavia E. Butler Landing Site","Marco Historico / Pouso","18.4447","77.4508","-2570","0.85","4","Ponto de pouso original da missao Mars 2020 no assoalho vulcanico/sedimentar de Jezero."
+"SCI_002","Citadelle (Afloramento Rochette)","Geologia Ignea / Amostras","18.4275","77.427","-2560","0.92","5","Crista rochosa ao sul de Seitah onde foram coletadas as amostras 'Montdenier' e 'Montagnac'."
+"SCI_003","Three Forks Sample Depot","Deposito Estrategico de Amostras","18.4456","77.4252","-2564","0.9","4","Planicie segura na base do delta contendo 10 tubos de titanio da campanha Mars Sample Return."
+"SCI_004","Hawksbill Gap & Wildcat Ridge","Astrobiologia / Antigo Lago","18.4505","77.4095","-2538","0.99","5","Rocha sedimentar fina (mudstone) rica em moleculas organicas e sulfatos depositados no antigo lago."
+"SCI_005","Pinestand & Echo Creek (Topo do Delta)","Estratigrafia Fluvial","18.459","77.3965","-2518","0.95","4","Camadas inclinadas de alta energia fluvial adjacentes a Cratera Belva."
+"SCI_006","Bright Angel (Canal Neretva Vallis)","Bioassinatura Potencial (Cheyava Falls)","18.485","77.345","-2465","1","5","Canal de entrada do rio marciano onde foi descoberta a rocha 'Cheyava Falls' com manchas tipo leopardo."
+"SCI_007","Gnarled (Unidade de Carbonatos Marginais)","Mineralogia / Carbonatos","18.4685","77.376","-2492","0.94","4","Antiga linha de praia do lago de Jezero rica em minerais carbonaticos preservadores de microfosseis."
