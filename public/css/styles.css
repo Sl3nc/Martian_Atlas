@@ -1,0 +1,739 @@
+:root {
+  --bg-deep: #0b0f17;
+  --bg-panel: rgba(15, 22, 34, 0.88);
+  --bg-panel-solid: #111827;
+  --bg-card: rgba(24, 34, 52, 0.78);
+  --bg-card-hover: rgba(34, 48, 72, 0.92);
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-highlight: rgba(56, 189, 248, 0.45);
+  --text-main: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-primary: #38bdf8;
+  --accent-safe: #10b981;
+  --accent-warn: #f59e0b;
+  --accent-danger: #ef4444;
+  --accent-science: #a855f7;
+  --crit-1: #22c55e;
+  --crit-2: #06b6d4;
+  --crit-3: #eab308;
+  --crit-4: #f97316;
+  --crit-5: #ef4444;
+  --radius-lg: 16px;
+  --radius-md: 11px;
+  --radius-sm: 7px;
+  --shadow-glass: 0 16px 40px -8px rgba(0, 0, 0, 0.65);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+}
+
+/* Map Full-Screen Container */
+#mars-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background: radial-gradient(circle at center, #3b1d14 0%, #1c0d08 75%, #0d0604 100%);
+}
+
+/* Custom Map Visual Filters for Satellite vs Topographic Relief */
+.map-mode-satellite .leaflet-tile-pane {
+  filter: contrast(1.12) saturate(1.18) brightness(0.96);
+}
+
+.map-mode-relief .leaflet-tile-pane {
+  filter: sepia(0.35) hue-rotate(155deg) saturate(1.6) contrast(1.25);
+}
+
+/* Top Command Header Bar */
+.top-header {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  height: 56px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: var(--bg-panel);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  box-shadow: var(--shadow-glass);
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.5);
+}
+
+.brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+/* Mode & Layer Pills in Top Bar */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pill-group {
+  display: flex;
+  background: rgba(10, 15, 25, 0.75);
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+}
+
+.pill-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-btn:hover {
+  color: var(--text-main);
+}
+
+.pill-btn.active {
+  background: var(--accent-primary);
+  color: #06131f;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+}
+
+.pill-btn.active-emerald {
+  background: var(--accent-safe);
+  color: #041f15;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-chip:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-card-hover);
+}
+
+.action-chip.chip-science {
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #e9d5ff;
+}
+
+.action-chip.chip-hazard {
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fecaca;
+}
+
+.action-chip.active-placement {
+  background: var(--accent-danger);
+  color: #fff;
+  animation: pulseGlow 1.5s infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
+/* Left Floating Main Dock (Google Maps / Waze Hub) */
+.left-dock {
+  position: absolute;
+  top: 82px;
+  left: 16px;
+  bottom: 20px;
+  width: 390px;
+  z-index: 999;
+  background: var(--bg-panel);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dock-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(10, 15, 24, 0.6);
+}
+
+.dock-tab {
+  padding: 12px 4px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dock-tab:hover {
+  color: var(--text-main);
+}
+
+.dock-tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+  background: rgba(56, 189, 248, 0.07);
+}
+
+.dock-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+/* Route Planner Form */
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.waypoint-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.wp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.wp-row:last-child {
+  margin-bottom: 0;
+}
+
+.wp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wp-dot.origin { background: var(--accent-safe); box-shadow: 0 0 8px var(--accent-safe); }
+.wp-dot.stop { background: var(--accent-warn); }
+.wp-dot.dest { background: var(--accent-primary); box-shadow: 0 0 8px var(--accent-primary); }
+
+.wp-select {
+  flex: 1;
+  background: rgba(11, 15, 23, 0.85);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
+
+.btn-icon-small {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.btn-secondary {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-card-hover);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 11px 14px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin-bottom: 14px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+}
+
+/* Candidate Routes Cards */
+.route-card {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.route-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.route-card.selected {
+  border-color: var(--accent-safe);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.route-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.route-name {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.route-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px;
+  background: rgba(11, 15, 23, 0.55);
+  border-radius: var(--radius-sm);
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.metric-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.route-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* Right Floating Inspector & Creation Modal Card */
+.right-panel {
+  position: absolute;
+  top: 82px;
+  right: 16px;
+  width: 350px;
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+  z-index: 999;
+  background: var(--bg-panel);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+  padding: 16px;
+  display: none;
+}
+
+.right-panel.visible {
+  display: block;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.crit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.crit-1 { background: rgba(34, 197, 94, 0.2); color: #86efac; border: 1px solid #22c55e; }
+.crit-2 { background: rgba(6, 182, 212, 0.2); color: #67e8f9; border: 1px solid #06b6d4; }
+.crit-3 { background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid #eab308; }
+.crit-4 { background: rgba(249, 115, 22, 0.2); color: #fdba74; border: 1px solid #f97316; }
+.crit-5 { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid #ef4444; }
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.info-box {
+  background: var(--bg-card);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.info-box span {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.info-box strong {
+  font-size: 12.5px;
+  color: var(--text-main);
+}
+
+/* Bottom Navigation & Telemetry HUD */
+.bottom-hud {
+  position: absolute;
+  bottom: 20px;
+  left: 422px;
+  right: 16px;
+  min-height: 118px;
+  z-index: 998;
+  background: var(--bg-panel);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glass);
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 1.3fr 1.7fr;
+  gap: 18px;
+  align-items: center;
+}
+
+.nav-telemetry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid var(--border-subtle);
+  padding-right: 16px;
+}
+
+.nav-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.live-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
+.live-pill.idle {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-secondary);
+}
+
+.nav-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.nav-stat-card {
+  background: var(--bg-card);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.nav-stat-card small {
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.nav-stat-card strong {
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.progress-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10b981, #38bdf8);
+  transition: width 0.25s ease;
+}
+
+.nav-controls-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-start-nav {
+  background: var(--accent-safe);
+  color: #042418;
+  border: none;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-stop-nav {
+  background: var(--accent-danger);
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Elevation Chart SVG Container */
+.elevation-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+
+#elevation-svg {
+  width: 100%;
+  height: 68px;
+  background: rgba(10, 15, 25, 0.5);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Form Elements for Adding Points / Obstacles */
+.form-group {
+  margin-bottom: 10px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(11, 15, 23, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 12.5px;
+}
+
+.crit-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.crit-option {
+  padding: 7px 0;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.crit-option.active {
+  outline: 2px solid #fff;
+}
+
+/* Toast Alert Banner (Waze Dynamic Detour Notification) */
+.waze-toast {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  background: rgba(185, 28, 28, 0.95);
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 12px 32px rgba(239, 68, 68, 0.55);
+  border: 1px solid #fca5a5;
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.waze-toast.show {
+  display: flex;
+}
+
+/* Log Entries List */
+.log-item {
+  background: rgba(11, 15, 23, 0.75);
+  border-left: 3px solid var(--accent-primary);
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.log-item.WARN { border-left-color: var(--accent-warn); }
+.log-item.CRITICAL { border-left-color: var(--accent-danger); }

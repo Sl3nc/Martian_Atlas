@@ -1,0 +1,7 @@
+﻿"target_id","name","category","lat","lon","elevation_m","scientific_interest_score","description"
+"SCI_001","Octavia E. Butler Landing Site","Landing Site","18.4447","77.4508","-2570","0.85","Ponto inicial de pouso do rover Perseverance no assoalho da Cratera Jezero."
+"SCI_002","Citadelle (Rochette Rock Core Site)","Igneous Rock / Sample Site","18.4275","77.427","-2560","0.92","Crista rochosa ao sul de Seitah onde o Perseverance coletou suas primeiras amostras de rocha."
+"SCI_003","Three Forks Sample Depot","Sample Cache / Base","18.4456","77.4252","-2564","0.9","Planicie na base do delta onde foram depositados 10 tubos de amostras para a missao Mars Sample Return."
+"SCI_004","Hawksbill Gap & Wildcat Ridge (Delta Front)","Ancient Lakebed / Astrobiology","18.4505","77.4095","-2538","0.99","Afloramento sedimentar rico em materia organica e sulfatos formado no antigo lago de Jezero; altissimo interesse astrobiologico."
+"SCI_005","Pinestand & Echo Creek (Upper Delta)","Fluvial Sediments","18.459","77.3965","-2518","0.95","Camadas sedimentares de antigo rio marciano proximas a Cratera Belva."
+"SCI_006","Bright Angel (Neretva Vallis Channel)","Ancient River Channel / Biosignature Candidate","18.485","77.345","-2465","1","Canal de entrada do antigo rio Neretva Vallis onde foi descoberta a rocha Cheyava Falls com potenciais bioassinaturas."

@@ -1,0 +1,19 @@
+{
+  "name": "martian-atlas",
+  "version": "1.0.0",
+  "description": "Martian Atlas - Sistema Inteligente de Navegacao, Mapeamento de Obstaculos e Rotas Cientificas na Cratera Jezero (NASA Mars 2020 + USGS)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "etl": "python etl_obstacles.py"
+  },
+  "keywords": [
+    "mars",
+    "nasa",
+    "jezero-crater",
+    "route-planning",
+    "gis",
+    "waze-for-mars"
+  ],
+  "license": "MIT"
+}

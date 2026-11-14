@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Martian Atlas — Navegação & Cartografia Científica (Cratera Jezero)</title>
+  <!-- Leaflet GIS CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+  <!-- Google Fonts Inter -->
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="map-mode-satellite">
+
+  <!-- Map Canvas -->
+  <div id="mars-map"></div>
+
+  <!-- Waze Dynamic Alert Toast -->
+  <div id="waze-toast" class="waze-toast">
+    <span>⚠️</span>
+    <span id="waze-toast-text">Novo empecilho crítico registrado no caminho! Recalculando rota mais segura...</span>
+  </div>
+
+  <!-- Top Navigation & Layer Command Bar -->
+  <header class="top-header">
+    <div class="brand-group">
+      <div class="brand-logo">MA</div>
+      <div>
+        <div class="brand-title">MARTIAN ATLAS</div>
+        <span class="brand-subtitle">Cratera Jezero • NASA Mars Trek & MMGIS Surface Navigator</span>
+      </div>
+    </div>
+
+    <!-- App Mode & Map Layer Toggles -->
+    <div class="header-controls">
+      <div class="pill-group" title="Modo de Operação">
+        <button id="btn-mode-route" class="pill-btn active" onclick="AtlasApp.setOperationMode('route')">
+          🧭 Planejador de Rota
+        </button>
+        <button id="btn-mode-explore" class="pill-btn" onclick="AtlasApp.setOperationMode('explore')">
+          🌐 Exploração Livre (Visão Geral)
+        </button>
+      </div>
+
+      <div class="pill-group" title="Camada Visual do Mapa">
+        <button id="btn-layer-sat" class="pill-btn active-emerald" onclick="AtlasApp.setMapLayer('satellite')">
+          🛰️ Camada Satélite
+        </button>
+        <button id="btn-layer-relief" class="pill-btn" onclick="AtlasApp.setMapLayer('relief')">
+          ⛰️ Camada Relevo (MOLA)
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Creation & Base Shortcuts -->
+    <div class="quick-actions">
+      <button id="btn-add-science" class="action-chip chip-science" onclick="AtlasApp.openCreateModal('science')">
+        🔬 + Ponto Científico
+      </button>
+      <button id="btn-add-obstacle" class="action-chip chip-hazard" onclick="AtlasApp.openCreateModal('obstacle')">
+        ⚠️ + Novo Empecilho
+      </button>
+      <button class="action-chip" onclick="AtlasApp.flyToBaseStation()">
+        🏠 Base Ares Alpha
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Main Dock -->
+  <aside class="left-dock">
+    <nav class="dock-tabs">
+      <button class="dock-tab active" data-tab="tab-routes" onclick="AtlasApp.switchTab('tab-routes')">
+        🧭 Rotas
+      </button>
+      <button class="dock-tab" data-tab="tab-explore" onclick="AtlasApp.switchTab('tab-explore')">
+        🗺️ Camadas
+      </button>
+      <button class="dock-tab" data-tab="tab-saved" onclick="AtlasApp.switchTab('tab-saved')">
+        📂 Salvas (<span id="saved-count">2</span>)
+      </button>
+      <button class="dock-tab" data-tab="tab-logs" onclick="AtlasApp.switchTab('tab-logs')">
+        📋 Logs ETL
+      </button>
+    </nav>
+
+    <div class="dock-body">
+      <!-- TAB 1: PLANEJADOR DE ROTAS E PARADAS -->
+      <div id="tab-routes" class="tab-pane active">
+        <div class="section-label">
+          <span>Trajeto & Paradas</span>
+          <span style="color: var(--accent-primary); cursor: pointer;" onclick="AtlasApp.addIntermediateStop()">+ Adicionar Parada</span>
+        </div>
+
+        <div class="waypoint-box">
+          <!-- Origem -->
+          <div class="wp-row">
+            <span class="wp-dot origin" title="Ponto de Partida (A)"></span>
+            <select id="select-origin" class="wp-select" onchange="AtlasApp.onWaypointsChanged()"></select>
+          </div>
+
+          <!-- Lista dinâmica de Paradas Intermediárias -->
+          <div id="stops-container"></div>
+
+          <!-- Destino -->
+          <div class="wp-row">
+            <span class="wp-dot dest" title="Destino Final (B)"></span>
+            <select id="select-destination" class="wp-select" onchange="AtlasApp.onWaypointsChanged()"></select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="AtlasApp.addIntermediateStop()">
+            ➕ Adicionar Parada
+          </button>
+          <button class="btn-secondary" onclick="AtlasApp.saveCurrentRoute()">
+            💾 Salvar Rota Atual
+          </button>
+        </div>
+
+        <button class="btn-primary" onclick="AtlasApp.calculateAllRoutes()">
+          ⚡ Calcular Melhores Rotas (Desvio de Obstáculos)
+        </button>
+
+        <div class="section-label">
+          <span>Todas as Rotas Possíveis até o Destino</span>
+          <span id="routes-count-badge">3 opções</span>
+        </div>
+
+        <div id="candidate-routes-list"></div>
+      </div>
+
+      <!-- TAB 2: EXPLORAÇÃO LIVRE, FILTROS DE CRITICIDADE 1-5 E PONTOS -->
+      <div id="tab-explore" class="tab-pane">
+        <div class="section-label">
+          <span>Filtro por Escala de Criticidade (1 a 5)</span>
+        </div>
+        <div class="crit-selector" style="margin-bottom: 14px;">
+          <button class="crit-option active" data-crit="ALL" onclick="AtlasApp.setCriticalityFilter('ALL')">Todos</button>
+          <button class="crit-option crit-5" data-crit="5" onclick="AtlasApp.setCriticalityFilter(5)">Nív. 5</button>
+          <button class="crit-option crit-4" data-crit="4" onclick="AtlasApp.setCriticalityFilter(4)">Nív. 4</button>
+          <button class="crit-option crit-3" data-crit="3" onclick="AtlasApp.setCriticalityFilter(3)">Nív. 3</button>
+          <button class="crit-option crit-1" data-crit="1" onclick="AtlasApp.setCriticalityFilter(1)">Nív. 1-2</button>
+        </div>
+
+        <div class="section-label"><span>Visibilidade de Camadas no Mapa</span></div>
+        <div class="waypoint-box" style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chk-show-base" checked onchange="AtlasApp.renderMapMarkers()" />
+            🏠 Estação Base Ares Alpha (Habitat Fixo)
+          </label>
+          <label style="font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chk-show-science" checked onchange="AtlasApp.renderMapMarkers()" />
+            🔬 Pontos Científicos de Interesse (<span id="count-science-lbl">7</span>)
+          </label>
+          <label style="font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chk-show-obstacles" checked onchange="AtlasApp.renderMapMarkers()" />
+            ⚠️ Empecilhos & Terreno Crítico (<span id="count-obstacles-lbl">325</span>)
+          </label>
+          <label style="font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chk-show-nasa-trail" checked onchange="AtlasApp.renderMapMarkers()" />
+            🛰️ Trilha Histórica Perseverance (NASA MMGIS)
+          </label>
+          <label style="font-size: 12px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="chk-show-contours" checked onchange="AtlasApp.renderMapMarkers()" />
+            ⛰️ Isolinhas de Elevação / Relevo Jezero
+          </label>
+        </div>
+
+        <div class="section-label" style="margin-top: 14px;">
+          <span>Catálogo de Pontos Científicos</span>
+        </div>
+        <div id="catalog-science-list" style="margin-bottom: 14px;"></div>
+
+        <div class="section-label">
+          <span>Principais Empecilhos Críticos</span>
+        </div>
+        <div id="catalog-obstacles-list"></div>
+      </div>
+
+      <!-- TAB 3: ROTAS PASSADAS / SALVAS -->
+      <div id="tab-saved" class="tab-pane">
+        <div class="section-label">
+          <span>Histórico de Rotas Salvas</span>
+        </div>
+        <p style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 12px;">
+          Clique em qualquer rota salva para carregá-la imediatamente no mapa e comparar alternativas.
+        </p>
+        <div id="saved-routes-container"></div>
+      </div>
+
+      <!-- TAB 4: LOGGING & AUDITORIA ETL -->
+      <div id="tab-logs" class="tab-pane">
+        <div class="section-label">
+          <span>Exportar Bases Atualizadas (ETL + Waze)</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn-secondary" onclick="AtlasApp.exportCsv('obstacles')">
+            ⬇️ CSV Empecilhos
+          </button>
+          <button class="btn-secondary" onclick="AtlasApp.exportCsv('science')">
+            ⬇️ CSV Científicos
+          </button>
+          <button class="btn-secondary" onclick="AtlasLogger.exportLogsAsJson()">
+            ⬇️ JSON Logs
+          </button>
+        </div>
+
+        <div class="section-label">
+          <span>Registro de Eventos (correlation_id)</span>
+          <span id="log-counter">0 eventos</span>
+        </div>
+        <div id="logs-list-container"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right Floating Inspector & Creation Panel -->
+  <section id="right-panel" class="right-panel">
+    <div id="right-panel-content"></div>
+  </section>
+
+  <!-- Bottom Live Navigation & Topographic Profile HUD -->
+  <footer class="bottom-hud">
+    <!-- Left Column: Live Traverse Controls & Remaining Distance/Time -->
+    <div class="nav-telemetry">
+      <div class="nav-status-row">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <strong style="font-size: 13px;" id="hud-route-title">Rota Mais Segura (Recomendada)</strong>
+          <span id="hud-nav-badge" class="live-pill idle">PRONTO PARA PARTIDA</span>
+        </div>
+        <span style="font-size: 11px; color: var(--text-secondary);" id="hud-coords-live">
+          18.4447° N, 77.4508° E • -2570m
+        </span>
+      </div>
+
+      <div class="nav-stats-grid">
+        <div class="nav-stat-card">
+          <small>Distância Restante</small>
+          <strong id="hud-dist-remaining">0.00 km</strong>
+        </div>
+        <div class="nav-stat-card">
+          <small>Tempo Restante</small>
+          <strong id="hud-time-remaining">0 min</strong>
+        </div>
+        <div class="nav-stat-card">
+          <small>Inclinação / Risco</small>
+          <strong id="hud-slope-live">2.4° (Seguro)</strong>
+        </div>
+      </div>
+
+      <div class="progress-track">
+        <div id="hud-progress-bar" class="progress-fill"></div>
+      </div>
+
+      <div class="nav-controls-row">
+        <button id="btn-nav-start" class="btn-start-nav" onclick="AtlasApp.startTraverse()">
+          ▶️ Iniciar Percurso
+        </button>
+        <button id="btn-nav-pause" class="btn-secondary" style="padding: 7px 12px; flex: 0;" onclick="AtlasApp.pauseTraverse()">
+          ⏸️ Pausar
+        </button>
+        <button id="btn-nav-stop" class="btn-stop-nav" onclick="AtlasApp.stopTraverse()">
+          ⏹️ Parar Trajeto
+        </button>
+        <select id="select-nav-speed" class="wp-select" style="max-width: 95px; padding: 6px;" onchange="AtlasApp.changeTraverseSpeed(this.value)">
+          <option value="1">Vel. 1x</option>
+          <option value="5" selected>Vel. 5x</option>
+          <option value="15">Vel. 15x</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Right Column: Topographic Elevation Profile (MOLA Datum) -->
+    <div class="elevation-container">
+      <div class="section-label" style="margin-bottom: 4px;">
+        <span>Perfil Topográfico de Elevação no Percurso (MOLA Datum)</span>
+        <span id="elev-summary-lbl">Início: -2570m → Fim: -2538m (Δ +32m)</span>
+      </div>
+      <svg id="elevation-svg" viewBox="0 0 500 68" preserveAspectRatio="none"></svg>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+  <script src="data/mars_atlas_data.js"></script>
+  <script src="js/logger.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
