@@ -829,19 +829,41 @@ function onMapClick({ x, y, marker }) {
   render();
 }
 
-/** Cartão com a foto do ponto científico sob o mouse. */
-function showSamplePreview(hit, screen) {
-  const el = $('#sample-preview');
-  const id = hit?.type === 'marker' && hit.marker.kind === 'sample' ? hit.marker.id.slice('sample:'.length) : null;
-  const sample = id && !userSampleIds().has(id) ? findSample(id) : null;
-  if (!sample) {
+/** Conteúdo da prévia para o que está sob o mouse, ou null se não houver foto. */
+function previewFor(hit) {
+  if (hit?.type === 'marker' && hit.marker.kind === 'sample') {
+    const id = hit.marker.id.slice('sample:'.length);
+    const sample = userSampleIds().has(id) ? null : findSample(id);
+    if (!sample) return null;
+    return {
+      key: hit.marker.id,
+      html: `${T.samplePhoto(sample, 'map-preview-photo')}<strong>${T.esc(sample.targetName)}</strong><small>Sol ${T.esc(sample.sol)}</small>`,
+    };
+  }
+  if (hit?.type === 'obstacle') {
+    const o = hit.obstacle;
+    const figure = T.obstaclePhotoFigure(o, 'map-preview-photo');
+    if (!figure) return null;
+    return {
+      key: `obstacle:${o.id}:${o.criticality}`,
+      html: `${figure}<strong>${T.esc(displayName(o))}</strong><small>Criticidade ${T.esc(o.criticality)}</small>`,
+    };
+  }
+  return null;
+}
+
+/** Cartão com a foto do ponto científico ou do empecilho sob o mouse. */
+function showMapPreview(hit, screen) {
+  const el = $('#map-preview');
+  const preview = previewFor(hit);
+  if (!preview) {
     el.hidden = true;
-    delete el.dataset.id;
+    delete el.dataset.key;
     return;
   }
-  if (el.dataset.id !== id) {
-    el.dataset.id = id;
-    el.innerHTML = `${T.samplePhoto(sample, 'sample-preview-photo')}<strong>${T.esc(sample.targetName)}</strong><small>Sol ${T.esc(sample.sol)}</small>`;
+  if (el.dataset.key !== preview.key) {
+    el.dataset.key = preview.key;
+    el.innerHTML = preview.html;
   }
   el.hidden = false;
   // Abre para o lado com mais espaço, para não sair da tela.
@@ -854,7 +876,7 @@ function showSamplePreview(hit, screen) {
 }
 
 function onHover(point, hit, screen) {
-  showSamplePreview(hit, screen);
+  showMapPreview(hit, screen);
   const el = $('#coords');
   if (!point || !isInsideMap(point.x, point.y)) {
     el.textContent = '';

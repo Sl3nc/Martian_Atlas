@@ -10,7 +10,7 @@ import {
   formatNumber,
 } from '../core/geo.js';
 import { DRIVE_HOURS_PER_SOL } from '../core/route.js';
-import { CRITICALITY, OBSTACLE_TYPES, DEFAULT_SEVERITY, displayName } from '../model/obstacles.js';
+import { CRITICALITY, OBSTACLE_TYPES, DEFAULT_SEVERITY, displayName, obstaclePhoto } from '../model/obstacles.js';
 import { SAMPLE_TYPES, sampleImageUrl } from '../model/samples.js';
 import { SAMPLE_COLORS } from './mapView.js';
 
@@ -138,6 +138,17 @@ export const samplePhoto = (s, className = 'sample-photo') => `
     <img src="${esc(sampleImageUrl(s))}" alt="Alvo ${esc(s.targetName)}, amostrado no sol ${esc(s.sol)}" onerror="this.parentElement.remove()" />
   </figure>`;
 
+/** Foto ilustrativa do nível de criticidade; a legenda deixa claro que não é o próprio empecilho. */
+export function obstaclePhotoFigure(o, className = 'sample-photo') {
+  const photo = obstaclePhoto(o);
+  if (!photo) return '';
+  return `
+  <figure class="${className}">
+    <img src="${esc(photo.url)}" alt="Cena de exemplo para criticidade ${esc(o.criticality)}" onerror="this.parentElement.remove()" />
+    <figcaption>Foto ilustrativa · Hazcam, sol ${esc(photo.sol)}</figcaption>
+  </figure>`;
+}
+
 export function sampleTemplate({ sample, isUser, inRoutes }) {
   return `
     <button class="back-btn" data-action="back">← Voltar</button>
@@ -183,6 +194,7 @@ export function obstacleTemplate({ obstacle: o, isUser, inRoutes, onRoute }) {
         <span>${esc(c.hint)}</span>
       </div>
       ${onRoute ? `<p class="note">Este empecilho está a ${formatDistance(onRoute.clearanceKm)} da rota selecionada (km ${formatNumber(onRoute.alongKm, 2)}).</p>` : ''}
+      ${obstaclePhotoFigure(o)}
       ${o.description ? `<p>${esc(o.description)}</p>` : ''}
       <dl class="facts">
         ${fact('Tipo', esc(OBSTACLE_TYPES[o.type]))}

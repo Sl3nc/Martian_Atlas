@@ -116,6 +116,29 @@ export function displayName(o) {
   return m ? `Inclinação de ${m[2]} deg (Sol ${m[1]})` : o.name;
 }
 
+/**
+ * Fotos ilustrativas das Hazcams do Perseverance, agrupadas pela criticidade
+ * que cada cena representa (data/obstacles/c<nível>-<n>.jpg). Não são fotos
+ * do empecilho em si: o dataset não traz imagem por empecilho.
+ */
+const OBSTACLE_PHOTOS = Object.freeze({
+  1: [1947, 1965, 422], // chão aberto com seixos esparsos
+  2: [504, 2018, 1893, 1927], // lajes e rochas soltas, contornáveis
+  3: [1885, 1960, 73, 1965, 795], // blocos espalhados no caminho
+  4: [1921, 1931, 1930, 1931, 2018], // campos densos de blocos, encostas rochosas
+  5: [263, 1975, 2008, 1877, 2018], // blocos grandes e paredões à frente do rover
+});
+
+/** Escolha estável: o mesmo empecilho mostra sempre a mesma foto do seu nível. */
+export function obstaclePhoto(o) {
+  const sols = OBSTACLE_PHOTOS[o.criticality];
+  if (!sols) return null;
+  let hash = 0;
+  for (const ch of o.id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  const k = hash % sols.length;
+  return { url: `data/obstacles/c${o.criticality}-${k + 1}.jpg`, sol: sols[k] };
+}
+
 export function isUserObstacle(o) {
   return o.id.startsWith(USER_ID_PREFIX);
 }

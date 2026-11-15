@@ -1435,7 +1435,7 @@ code {
   }
 }
 
-/* ---------- Fotos dos pontos científicos ---------- */
+/* ---------- Fotos de pontos científicos e empecilhos ---------- */
 
 .sample-photo {
   margin: 12px 0 4px;
@@ -1451,7 +1451,7 @@ code {
   background: var(--surface-2);
 }
 
-.sample-preview {
+.map-preview {
   position: absolute;
   z-index: 5;
   width: 240px;
@@ -1463,15 +1463,15 @@ code {
   pointer-events: none;
 }
 
-.sample-preview[hidden] {
+.map-preview[hidden] {
   display: none;
 }
 
-.sample-preview-photo {
+.map-preview-photo {
   margin: 0 0 6px;
 }
 
-.sample-preview-photo img {
+.map-preview-photo img {
   display: block;
   width: 100%;
   aspect-ratio: 4 / 3;
@@ -1480,18 +1480,25 @@ code {
   background: var(--surface-2);
 }
 
-.sample-preview strong,
-.sample-preview small {
+.map-preview strong,
+.map-preview small {
   display: block;
   padding: 0 4px;
 }
 
-.sample-preview small {
+.map-preview small {
   color: var(--text-muted);
 }
 
 @media (hover: none) {
-  .sample-preview {
+  .map-preview {
     display: none;
   }
+}
+
+.sample-photo figcaption,
+.map-preview-photo figcaption {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
 }
