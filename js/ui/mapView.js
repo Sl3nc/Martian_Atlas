@@ -139,8 +139,8 @@ export class MapView {
   }
 
   #viewChanged() {
-    this.view.cx = clamp(this.view.cx, -5, MAP_WIDTH_KM + 5);
-    this.view.cy = clamp(this.view.cy, -5, MAP_HEIGHT_KM + 5);
+    this.view.cx = clamp(this.view.cx, 0, MAP_WIDTH_KM);
+    this.view.cy = clamp(this.view.cy, 0, MAP_HEIGHT_KM);
     this.requestDraw();
   }
 

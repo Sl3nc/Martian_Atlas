@@ -1,11 +1,11 @@
 {
-  "source": "JMARS/QuickMap export (arquivo quickmap-crism.vrt fornecido pelo usuário)",
+  "source": "Mosaico HiRISE sobre CRISM (JerezoHigh.png), georreferenciado por correspondência de feições (SIFT, 129 inliers) com a imagem QuickMap anterior",
   "projection": "+proj=eqc +a=3396190 +b=3396190 +lon_0=0 +lat_0=0",
-  "width": 1500,
-  "height": 746,
-  "metersPerPixel": 47.05205732113953,
-  "west": 77.09195249988025,
-  "east": 78.28264750011974,
-  "north": 18.704286156726223,
-  "south": 18.112113843273775
+  "width": 4220,
+  "height": 3661,
+  "metersPerPixel": 6.462717145712963,
+  "west": 77.15226001094737,
+  "east": 77.61236638844825,
+  "north": 18.687987923562943,
+  "south": 18.288828857242656
 }

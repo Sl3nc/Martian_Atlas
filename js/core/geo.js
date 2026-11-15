@@ -8,18 +8,18 @@
 
 export const MARS_RADIUS_M = 3396190; // esfera Mars 2000 (IAU), a mesma do .vrt
 export const BOUNDS = Object.freeze({
-  west: 77.09195249988025,
-  east: 78.28264750011974,
-  north: 18.704286156726223,
-  south: 18.112113843273775,
+  west: 77.15226001094737,
+  east: 77.61236638844825,
+  north: 18.687987923562943,
+  south: 18.288828857242656,
 });
 
 const REFERENCE_LAT = (BOUNDS.north + BOUNDS.south) / 2;
 export const KM_PER_DEG_LAT = (2 * Math.PI * MARS_RADIUS_M) / 1000 / 360; // ≈ 59,27 km
 export const KM_PER_DEG_LON = KM_PER_DEG_LAT * Math.cos((REFERENCE_LAT * Math.PI) / 180);
 
-export const MAP_WIDTH_KM = (BOUNDS.east - BOUNDS.west) * KM_PER_DEG_LON; // ≈ 67 km
-export const MAP_HEIGHT_KM = (BOUNDS.north - BOUNDS.south) * KM_PER_DEG_LAT; // ≈ 35 km
+export const MAP_WIDTH_KM = (BOUNDS.east - BOUNDS.west) * KM_PER_DEG_LON; // ≈ 26 km
+export const MAP_HEIGHT_KM = (BOUNDS.north - BOUNDS.south) * KM_PER_DEG_LAT; // ≈ 24 km
 
 /** Resolução da grade de navegação. */
 export const CELL_KM = 0.05;

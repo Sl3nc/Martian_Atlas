@@ -12,7 +12,7 @@ export const DATA_FILES = Object.freeze({
   demMeta: 'data/dem_jezero_200m.json',
   demValues: 'data/dem_jezero_200m.bin',
   satelliteMeta: 'data/satellite_jezero.json',
-  satelliteImage: 'data/satellite_jezero.png',
+  satelliteImage: 'data/satellite_jezero.jpg',
 });
 
 /** Marcos de referência que não são amostras nem empecilhos. */
