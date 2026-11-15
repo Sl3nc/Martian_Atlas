@@ -54,27 +54,53 @@ The mentor suggested the approach we implemented: build a structured obstacle da
 
 ## Features
 
-- **Interactive map** of Jezero Crater (≈ 26 × 24 km) with pan/zoom limited to the imaged area. Base map: satellite or relief (DEM). Toggleable layers: hazards, science samples and slope.
-- **Multi-stop routing**: origin → waypoints → destination, with distance, drive time and estimated number of Sols.
-- **Up to 3 distinct alternatives** (_fastest_, _shortest_, _least exposed_); alternatives overlapping more than 60% with an existing route are discarded.
-- **Elevation profile** of the selected route.
-- **Live traverse tracking**: simulates the rover's progress, showing remaining distance and time; pause/stop; route history saved in `localStorage`.
-- **Surprise hazard reporting**: register a new hazard on the map and the active route reroutes around it.
-- **Explore tab** listing science samples and hazards with details. Hovering a marker on the map shows a photo preview:
-  - **science samples** show the real sample photo (matched by Sol);
-  - **hazards** show an illustrative Hazcam scene chosen for their criticality level.
+### 1. Application Features
+
+| Feature | Category | Data Inputs Used | Description |
+| :--- | :--- | :--- | :--- |
+| **Interactive Layered GIS Map** | Cartography & Visualization | Raster (HiRISE, DEM) + Vector | Pan/zoom across Jezero Crater (≈ 26 × 24 km) limited to the imaged bounds. Toggle satellite base map, relief (DEM), slope heatmap, hazards, and science samples. |
+| **Multi-Stop Route Planner** | Spatial Optimization | Quantitative + Qualitative | Computes paths across `Origin → Intermediate Waypoints → Destination`, reporting total distance (km), drive time (hours), and Martian Sols. |
+| **Up to 3 Route Alternatives** | Decision Support | Quantitative Cost Grid | Generates up to 3 distinct candidate paths (*fastest*, *shortest*, *least exposed*); candidates overlapping >60% with an existing route are discarded. |
+| **Topographic Elevation Profile** | Terrain Analysis | Quantitative Continuous | Interactive chart displaying elevation (m) and local slope (°) along the selected route. |
+| **Live Traverse Tracking** | Telemetry Simulation | Quantitative Continuous | Simulates rover movement along the active route with real-time remaining distance and time, pause/stop controls, and history saved in `localStorage`. |
+| **Surprise Hazard Reporting ("Waze")** | Collaborative Logging | Qualitative + Quantitative | Register a new obstacle (criticality 1–5) anywhere on the map; if it blocks the active traverse, the engine immediately recalculates a safe detour. |
+| **Explore Catalog & Photo Previews** | Science & Hazard Inspection | Qualitative + Media | Lists all science samples and grouped hazards. Hovering or clicking displays real Sol sample photos or criticality-matched illustrative Hazcam scenes. |
+
+### 2. Data Model Features (Variable & Statistical Classification)
+
+| Feature / Column | Dataset | Statistical Data Type | Unit / Domain | Role in Routing & Visualization |
+| :--- | :--- | :--- | :--- | :--- |
+| `lat`, `lon` | Hazards & Samples | **Quantitative Continuous** | Degrees (`°N`, `°E`) | Planetocentric geographic coordinates in Jezero Crater. |
+| `easting`, `northing` | Samples & Grid | **Quantitative Continuous** | Meters (`m`) | Equirectangular projected coordinates (standard parallel 18.4663° N). |
+| `elevation_m` | DEM & Hazards | **Quantitative Continuous** | Meters (`m`) | Elevation relative to the Martian areoid (MOLA datum); drives slope calculation. |
+| `slope_deg` | DEM & Hazards | **Quantitative Continuous** | Degrees (`0°–90°`) | Local terrain inclination (IMU tilt or DEM gradient); penalizes cost and blocks >25°. |
+| `radius_meters` | Hazards | **Quantitative Continuous** | Meters (`m`) | Physical footprint radius of the crater, sand trap, scarp, or boulder field. |
+| `severity_score` | Hazards | **Quantitative Continuous** | Normalized (`0.0–1.0`) | Continuous hazard intensity weight used in the cell cost multiplier (`1 + 4 · severity`). |
+| `criticality_level` | Hazards | **Qualitative Ordinal** | Scale (`1` to `5`) | Risk rank from `1` (Very Low) to `5` (Critical/Impassable); defines safety buffer size (10–50 m) and UI color. |
+| `sol` | Samples & Waypoints | **Quantitative Discrete** | Integer (`Sol 0+`) | Martian solar day when the sample was cached or the rover waypoint was recorded. |
+| `obstacle_type` | Hazards | **Qualitative Nominal** | Category (`crater`, `sand_trap`, `steep_slope`, `boulder_field`, `rough_terrain`) | Geological/terrain classification of the obstacle. |
+| `passable_by_rover` | Hazards | **Qualitative Nominal (Binary)** | Boolean (`True` / `False`) | Determines whether the hazard is strictly blocked or traversable with a penalty. |
+| `is_dynamic_report` | Hazards | **Qualitative Nominal (Binary)** | Boolean (`True` / `False`) | Distinguishes historical ETL hazards (`False`) from live user-reported Waze hazards (`True`). |
+| `sample_id` / `obstacle_id` | Samples & Hazards | **Qualitative Nominal** | String ID (`M2020-SSSSS-NN`) | Unique primary identifier for traceability and logging. |
 
 ## How the Routing Engine Works
 
 Code: `js/core/world.js`, `pathfinding.js`, `route.js`, `traverse.js`.
 
-1. **50 m cost grid** (518 × 474 cells) covering the map area.
-   - Hazards with `passable_by_rover = False` **block** every cell inside their radius plus a safety margin that grows with criticality (10 m at level 1 up to 50 m at level 5).
-   - Passable hazards **multiply** the cell cost by `1 + 4 · severity_score`.
-   - Slope derived from the DEM adds a cost of `1 + 0.5 · (slope / 8°)²` and **blocks** slopes above **25°**.
-2. **8-connected A\*** with **line-of-sight smoothing**, which removes grid zig-zags without cutting through blocked cells.
-3. **Alternatives**: the corridor of each route found (200 m) is penalized ×3 and A\* runs again.
-4. **Drive time**: average autonomous driving speed of ~150 m/h, weighted by terrain cost, with 4.5 driving hours per Sol.
+To find the safest and most efficient path between two or more points on Mars, the application uses the **A\* (A-Star) pathfinding algorithm** in four simple steps:
+
+1. **50 m Terrain Cost Grid (`world.js`):**
+   We divide the Jezero Crater map into a grid of 50 m × 50 m cells (518 × 474 cells) and assign a "difficulty score" (cost) to each cell:
+   - **Impassable Hazards (`passable_by_rover = False`):** Craters, sand traps, and cliffs completely **block** the cells inside their radius plus a safety margin based on criticality (from 10 m at level 1 up to 50 m at level 5).
+   - **Passable Hazards (`passable_by_rover = True`):** Rough terrain and moderate boulder fields remain open, but increase the cell cost (`1 + 4 · severity_score`), encouraging the rover to go around them when possible.
+   - **Terrain Slope (DEM):** Steeper ground costs more to climb (`1 + 0.5 · (slope / 8°)²`), and any slope above **25°** is automatically blocked for rover safety.
+2. **Finding the Best Path with 8-Connected A\* (`pathfinding.js`):**
+   The **A\* algorithm** searches the grid (allowing vertical, horizontal, and diagonal moves) by combining the **actual terrain cost traveled so far** with the **estimated straight-line distance to the goal**. This guarantees finding the path with the lowest total risk and effort much faster than searching blindly in all directions. Afterward, a **line-of-sight smoothing** step straightens out grid zig-zags without cutting across blocked zones.
+3. **Generating Up to 3 Route Alternatives (`route.js`):**
+   Once the best route is found, the engine temporarily increases the cost (×3) along a 200 m corridor around that path and runs **A\*** again. This produces up to **3 distinct options** (*fastest*, *shortest*, and *least exposed*). Any alternative that repeats more than 60% of an existing route is discarded.
+4. **Drive Time & Live "Waze" Rerouting (`traverse.js`):**
+   - **Time Estimate:** Calculated from a base rover speed of **~150 m/h** (slowed down proportionally on rougher cells), assuming **4.5 driving hours per Martian Sol**.
+   - **Dynamic Rerouting:** If a user reports a new hazard on the map that blocks the active route, the cost grid updates immediately and **A\*** recalculates a new detour from the rover's current position.
 
 ## Data and ETL Pipeline
 
@@ -167,9 +193,12 @@ tests/          node:test suites
 ### Planetary cartography, elevation and nomenclature (NASA and USGS)
 
 10. NASA Mars Trek (GIS viewer with MOLA, HiRISE and CTX layers): https://trek.nasa.gov/mars/ — WMTS API docs: https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=mars
-11. USGS Astrogeology Science Center: https://astrogeology.usgs.gov/
+11. Jezero HiRISE on NASA Mars Trek (high-definition black-and-white orbital imagery of Jezero Crater): https://trek.nasa.gov/mars/#v=0.1&x=77.01274065&y=17.675574349999998&z=7&p=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A104905&d=&locale=&b=mars&e=74.50511130224498%2C15.665076340627957%2C79.52036999775501%2C19.686072359372037&sfz=&w=
+12. USGS Astrogeology Science Center: https://astrogeology.usgs.gov/
     - Mars HRSC–MOLA Blended DEM Global 200 m v2: https://astrogeology.usgs.gov/search/map/mars_mgs_mola_mex_hrsc_blended_dem_global_200m
-12. USGS Gazetteer of Planetary Nomenclature (Mars features and craters): https://planetarynames.wr.usgs.gov/Target/Mars
+    - Mars 2020 Terrain Relative Navigation HiRISE DTM Mosaic (detailed regional topography of the Jezero landing region, though with lower visual surface detail): https://astrogeology.usgs.gov/search/map/mars_2020_terrain_relative_navigation_hirise_dtm_mosaic#open
+    - Mars Viking Colorized Global Mosaic 232m (colorized global mosaic of the Martian surface, providing broad color context but coarse/imprecise local details): https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m
+13. USGS Gazetteer of Planetary Nomenclature (Mars features and craters): https://planetarynames.wr.usgs.gov/Target/Mars
 
 ## Use of Artificial Intelligence
 
