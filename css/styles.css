@@ -1434,3 +1434,64 @@ code {
     transition: none;
   }
 }
+
+/* ---------- Fotos dos pontos científicos ---------- */
+
+.sample-photo {
+  margin: 12px 0 4px;
+}
+
+.sample-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.sample-preview {
+  position: absolute;
+  z-index: 5;
+  width: 240px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  pointer-events: none;
+}
+
+.sample-preview[hidden] {
+  display: none;
+}
+
+.sample-preview-photo {
+  margin: 0 0 6px;
+}
+
+.sample-preview-photo img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.sample-preview strong,
+.sample-preview small {
+  display: block;
+  padding: 0 4px;
+}
+
+.sample-preview small {
+  color: var(--text-muted);
+}
+
+@media (hover: none) {
+  .sample-preview {
+    display: none;
+  }
+}

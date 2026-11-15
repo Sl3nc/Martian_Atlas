@@ -15,6 +15,7 @@ const TYPES = {
   '.svg': 'image/svg+xml',
   '.json': 'application/json',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
 };
 
 createServer(async (req, res) => {

@@ -11,7 +11,7 @@ import {
 } from '../core/geo.js';
 import { DRIVE_HOURS_PER_SOL } from '../core/route.js';
 import { CRITICALITY, OBSTACLE_TYPES, DEFAULT_SEVERITY, displayName } from '../model/obstacles.js';
-import { SAMPLE_TYPES } from '../model/samples.js';
+import { SAMPLE_TYPES, sampleImageUrl } from '../model/samples.js';
 import { SAMPLE_COLORS } from './mapView.js';
 
 export const LETTERS = 'ABCDEFGHIJ';
@@ -132,6 +132,12 @@ export function placeTemplate({ x, y, elevationM, slopeDeg, traversable, obstacl
     </article>`;
 }
 
+/** Some sem deixar buraco se a foto não existir. */
+export const samplePhoto = (s, className = 'sample-photo') => `
+  <figure class="${className}">
+    <img src="${esc(sampleImageUrl(s))}" alt="Alvo ${esc(s.targetName)}, amostrado no sol ${esc(s.sol)}" onerror="this.parentElement.remove()" />
+  </figure>`;
+
 export function sampleTemplate({ sample, isUser, inRoutes }) {
   return `
     <button class="back-btn" data-action="back">← Voltar</button>
@@ -139,6 +145,7 @@ export function sampleTemplate({ sample, isUser, inRoutes }) {
       <h2 class="place-title" tabindex="-1" data-autofocus>${esc(sample.targetName)}</h2>
       <span class="chip" style="--c:${SAMPLE_COLORS[sample.type] ?? '#ccc'}">${esc(SAMPLE_TYPES[sample.type] ?? sample.type)}</span>
       ${isUser ? '<span class="chip" style="--c:#ffffff">Registrado por você</span>' : ''}
+      ${isUser ? '' : samplePhoto(sample)}
       <dl class="facts">
         ${fact('sample_id', esc(sample.id))}
         ${fact('Sol', esc(sample.sol))}

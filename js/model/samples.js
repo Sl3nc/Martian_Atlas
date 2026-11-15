@@ -21,6 +21,13 @@ export const SAMPLE_TYPES = Object.freeze({
   WTA: 'Tubo testemunha (WTA)',
 });
 
+/**
+ * Foto do alvo amostrado, nomeada pelo sol (data/samples/<sol>.jpg).
+ * Só as amostras do dataset têm foto: um ponto registrado pelo usuário
+ * pode repetir o sol de outra amostra e herdaria a imagem errada.
+ */
+export const sampleImageUrl = (sample) => `data/samples/${sample.sol}.jpg`;
+
 const SAMPLE_ID = /^M2020-(\d{5})-(\d{2,})$/;
 
 export function parseSample(row) {

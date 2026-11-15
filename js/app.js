@@ -829,7 +829,32 @@ function onMapClick({ x, y, marker }) {
   render();
 }
 
-function onHover(point) {
+/** Cartão com a foto do ponto científico sob o mouse. */
+function showSamplePreview(hit, screen) {
+  const el = $('#sample-preview');
+  const id = hit?.type === 'marker' && hit.marker.kind === 'sample' ? hit.marker.id.slice('sample:'.length) : null;
+  const sample = id && !userSampleIds().has(id) ? findSample(id) : null;
+  if (!sample) {
+    el.hidden = true;
+    delete el.dataset.id;
+    return;
+  }
+  if (el.dataset.id !== id) {
+    el.dataset.id = id;
+    el.innerHTML = `${T.samplePhoto(sample, 'sample-preview-photo')}<strong>${T.esc(sample.targetName)}</strong><small>Sol ${T.esc(sample.sol)}</small>`;
+  }
+  el.hidden = false;
+  // Abre para o lado com mais espaço, para não sair da tela.
+  // parentElement, não offsetParent: este é null quando o CSS esconde a prévia (telas sem hover).
+  const area = el.parentElement.getBoundingClientRect();
+  const flipX = screen.x + 16 + el.offsetWidth > area.width;
+  const flipY = screen.y + 16 + el.offsetHeight > area.height;
+  el.style.left = `${flipX ? screen.x - 16 - el.offsetWidth : screen.x + 16}px`;
+  el.style.top = `${flipY ? Math.max(8, screen.y - 16 - el.offsetHeight) : screen.y + 16}px`;
+}
+
+function onHover(point, hit, screen) {
+  showSamplePreview(hit, screen);
   const el = $('#coords');
   if (!point || !isInsideMap(point.x, point.y)) {
     el.textContent = '';

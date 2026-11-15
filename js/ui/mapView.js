@@ -237,6 +237,7 @@ export class MapView {
   #onPointerDown(e) {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     this.canvas.setPointerCapture(e.pointerId);
+    this.handlers.onHover?.(null); // esconde a prévia enquanto arrasta o mapa
     const p = this.#local(e);
     this.#pointers.set(e.pointerId, p);
     this.handlers.onInteractionStart?.();
@@ -261,8 +262,9 @@ export class MapView {
   #onPointerMove(e) {
     const p = this.#local(e);
     if (!this.#pointers.has(e.pointerId)) {
-      this.handlers.onHover?.(this.screenToWorld(p.x, p.y));
-      this.canvas.classList.toggle('over-marker', Boolean(this.hitTest(p.x, p.y)));
+      const hit = this.hitTest(p.x, p.y);
+      this.handlers.onHover?.(this.screenToWorld(p.x, p.y), hit, p);
+      this.canvas.classList.toggle('over-marker', Boolean(hit));
       return;
     }
     this.#pointers.set(e.pointerId, p);
