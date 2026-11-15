@@ -103,13 +103,14 @@ The **21 real samples** collected and cached by Perseverance: `sample_id` (`M202
 
 22 Hazcam frames from the Mars 2020 raw image archive, grouped by visual criticality (1 = smooth ground … 5 = large rocks / steep terrain). They are **illustrative**: each hazard deterministically picks one photo of its own criticality level; the photo is not of that exact hazard.
 
-### Elevation — `data/dem_jezero_200m.bin` + `.json`
+### Elevation & Topography
+* **Dataset:** USGS Mars HRSC–MOLA Blended DEM (`relevo`, ~1.8 GB).
+* **Processing:** Integrated into QGIS 3D Viewport with optimized vertical scaling and border skirts (`skirt depth = 50–100`) to prevent rendering gaps. Combined with automated hillshade analysis to highlight crater rims, slopes, and topological features.
 
-A 364 × 186 `int16` crop (200 m/px, meters relative to the areoid) of the **USGS Mars HRSC–MOLA Blended DEM Global 200 m v2**.
-
-### Base map — `data/satellite_jezero.jpg` + `.json`
-
-A HiRISE color mosaic of Jezero (4220 × 3661 px, ≈ 6.5 m/px, equirectangular). It had no georeference, so we registered it against a previously georeferenced orbital image by **feature matching** (SIFT + RANSAC partial affine, 129 inliers). The resulting bounds (77.152°–77.612° E, 18.289°–18.688° N) define the navigable area.
+### Base Map & Tactical Export
+* **Dataset:** HiRISE High-Resolution Orthomosaic (`textura`, ~25 GB) fused with official NASA Mars Trek / USGS color layers.
+* **Processing:** Optimized via pyramid generation and Bilinear/Cubic resampling to eliminate 2D blurriness. Blended using QGIS render modes (`Sobrepor` / `Multiplicar`) with adjusted global opacity to merge ultra-sharp surface details with geological colorization and topographic shading.
+* **Georeferencing & GPS Integration:** Exported as a high-resolution georeferenced tactical map paired with a World File (`.wld` / `.pgw`), defining the exact navigation bounds (77.152°–77.612° E, 18.289°–18.688° N) for direct deployment on external GPS hardware.
 
 ## Technologies Used
 
@@ -117,6 +118,8 @@ A HiRISE color mosaic of Jezero (4220 × 3661 px, ≈ 6.5 m/px, equirectangular)
 - **HTML5 Canvas** and **CSS3**
 - **Node.js 20+** for the static dev server (`scripts/serve.js`) and the test runner (`node --test`, 20 tests)
 - **Python** (offline): pandas for the hazard ETL; OpenCV and Pillow for image registration and conversion
+- **QGIS** for 3D terrain modeling, raster pyramid optimization, hillshade analysis, layer blending, and georeferenced tactical map exports with World Files (`.wld` / `.pgw`)
+- **Geospatial Datasets**: USGS Mars HRSC–MOLA Blended DEM (~1.8 GB) and HiRISE High-Resolution Orthomosaic (~25 GB, bounds: 77.152°–77.612° E, 18.289°–18.688° N)
 
 ## Getting Started
 
