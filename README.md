@@ -1,5 +1,9 @@
 # Martian Atlas
 
+<div align="center">
+  <img src="assets/martian_atlas.jpg" alt="Martian Atlas: Explore panel with landmarks and science samples, and the Jezero Crater map with the rover traverse, hazards and sample markers" width="900">
+</div>
+
 A web navigation and cartography system for **Jezero Crater**, the landing site of NASA's Mars 2020 _Perseverance_ rover (≈ 18.44° N, 77.45° E). It combines open elevation data, orbital imagery, science samples and a catalog of **325 mapped hazards** to compute safe rover routes automatically, and reroutes in real time when an explorer reports a new hazard.
 
 <div align="center">
