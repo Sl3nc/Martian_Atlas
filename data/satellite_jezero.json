@@ -1,0 +1,11 @@
+{
+  "source": "Mosaico HiRISE sobre CRISM (JerezoHigh.png), georreferenciado por correspondência de feições (SIFT, 129 inliers) com a imagem QuickMap anterior",
+  "projection": "+proj=eqc +a=3396190 +b=3396190 +lon_0=0 +lat_0=0",
+  "width": 4220,
+  "height": 3661,
+  "metersPerPixel": 6.462717145712963,
+  "west": 77.15226001094737,
+  "east": 77.61236638844825,
+  "north": 18.687987923562943,
+  "south": 18.288828857242656
+}

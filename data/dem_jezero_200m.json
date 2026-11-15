@@ -1,0 +1,12 @@
+{
+  "source": "USGS Astrogeology — Mars HRSC MOLA Blended DEM Global 200m v2",
+  "url": "https://astrogeology.usgs.gov/search/map/mars_mgs_mola_mex_hrsc_blended_dem_global_200m",
+  "format": "int16 little-endian, row-major, north-up, meters relative to areoid",
+  "width": 364,
+  "height": 186,
+  "west": 77.0776402073684,
+  "north": 18.72169745270888,
+  "degPerPixelX": 0.003374120830641,
+  "degPerPixelY": 0.003374120830641,
+  "note": "Pixel (i, j) covers lon west + i*degPerPixelX .. +1, lat north - j*degPerPixelY .. -1"
+}
