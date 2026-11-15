@@ -110,6 +110,12 @@ export function serializeObstacle(o) {
 
 const round = (v, digits) => Math.round(v * 10 ** digits) / 10 ** digits;
 
+/** Nome para exibição: "Sol 286 Inclinacao (8.78 deg)" → "Inclinação de 8.78 deg (Sol 286)". */
+export function displayName(o) {
+  const m = /^Sol (\d+) Inclinacao \(([\d.]+) deg\)$/.exec(o.name);
+  return m ? `Inclinação de ${m[2]} deg (Sol ${m[1]})` : o.name;
+}
+
 export function isUserObstacle(o) {
   return o.id.startsWith(USER_ID_PREFIX);
 }

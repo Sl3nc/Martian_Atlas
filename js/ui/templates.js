@@ -10,7 +10,7 @@ import {
   formatNumber,
 } from '../core/geo.js';
 import { DRIVE_HOURS_PER_SOL } from '../core/route.js';
-import { CRITICALITY, OBSTACLE_TYPES, DEFAULT_SEVERITY } from '../model/obstacles.js';
+import { CRITICALITY, OBSTACLE_TYPES, DEFAULT_SEVERITY, displayName } from '../model/obstacles.js';
 import { SAMPLE_TYPES } from '../model/samples.js';
 import { SAMPLE_COLORS } from './mapView.js';
 
@@ -33,39 +33,49 @@ const fact = (label, value) => `<div><dt>${esc(label)}</dt><dd>${value}</dd></di
 
 // ---------- Explorar ----------
 
-function sampleItem(s, isUser) {
+function sampleItem(s) {
   return `
     <li>
       <button class="list-item" data-action="open-sample" data-id="${esc(s.id)}">
         <span class="diamond" style="--c:${SAMPLE_COLORS[s.type] ?? '#ccc'}" aria-hidden="true"></span>
         <span class="list-text">
-          <strong>${esc(s.targetName)}${isUser ? ' <em class="tag">novo</em>' : ''}</strong>
-          <small>${esc(s.id)} · ${esc(SAMPLE_TYPES[s.type] ?? s.type)} · Sol ${s.sol}</small>
+          <strong>${esc(s.targetName)}</strong>
+          <small>${esc(SAMPLE_TYPES[s.type] ?? s.type)} · Sol ${s.sol}</small>
         </span>
       </button>
     </li>`;
 }
 
-function obstacleItem(o, extra = '') {
+function obstacleItem(o, detail = typeLabel(o)) {
   return `
     <li>
       <button class="list-item" data-action="open-obstacle" data-id="${esc(o.id)}">
         ${criticalityBadge(o.criticality)}
         <span class="list-text">
-          <strong>${esc(o.name)}${o.isDynamic ? ' <em class="tag">dinâmico</em>' : ''}</strong>
-          <small>${esc(OBSTACLE_TYPES[o.type])} · ${o.passable ? 'transponível' : 'intransponível'}${extra}</small>
+          <strong>${esc(displayName(o))}${o.isDynamic ? ' <em class="tag">dinâmico</em>' : ''}</strong>
+          <small>${detail}</small>
         </span>
       </button>
     </li>`;
 }
 
-export function exploreTemplate({ query, landmarks, samples, userSampleIds, criticalObstacles, userObstacles }) {
+/** Acordeão (details nativo) com os empecilhos de um nível de criticidade. */
+function obstacleGroup(level, items, openGroups, searching) {
+  if (!items.length) return '';
+  const open = searching || openGroups.has(level);
+  return `
+    <details class="accordion" data-group="${level}" ${open ? 'open' : ''}>
+      <summary>${criticalityBadge(level, { long: true })}<span class="accordion-count">${items.length}</span></summary>
+      <ul class="list">${items.map((o) => obstacleItem(o)).join('')}</ul>
+    </details>`;
+}
+
+export function exploreTemplate({ query, landmarks, samples, obstacles, openGroups }) {
   const q = query.trim().toLocaleLowerCase('pt-BR');
   const match = (...texts) => !q || texts.join(' ').toLocaleLowerCase('pt-BR').includes(q);
   const ls = landmarks.filter((l) => match(l.name, l.description));
   const ss = samples.filter((s) => match(s.targetName, s.id, s.type, SAMPLE_TYPES[s.type]));
-  const cs = criticalObstacles.filter((o) => match(o.name, o.id, o.description));
-  const us = userObstacles.filter((o) => match(o.name, o.id, o.description));
+  const cs = obstacles.filter((o) => match(o.name, displayName(o), o.id, o.description));
   const empty = '<p class="muted">Nada encontrado.</p>';
   return `
     <div class="search-row" role="search">
@@ -85,11 +95,10 @@ export function exploreTemplate({ query, landmarks, samples, userSampleIds, crit
           </button></li>`).join('')}</ul>` : empty}
       </section>
       <section><h2 class="section-title">Pontos científicos (${ss.length})</h2>
-        ${ss.length ? `<ul class="list">${ss.map((s) => sampleItem(s, userSampleIds.has(s.id))).join('')}</ul>` : empty}
+        ${ss.length ? `<ul class="list">${ss.map((s) => sampleItem(s)).join('')}</ul>` : empty}
       </section>
-      ${us.length ? `<section><h2 class="section-title">Empecilhos reportados por você</h2><ul class="list">${us.map((o) => obstacleItem(o)).join('')}</ul></section>` : ''}
-      <section><h2 class="section-title">Empecilhos críticos (4–5)</h2>
-        ${cs.length ? `<ul class="list">${cs.map((o) => obstacleItem(o)).join('')}</ul>` : empty}
+      <section><h2 class="section-title">Empecilhos mapeados (${cs.length})</h2>
+        ${cs.length ? [5, 4, 3, 2, 1].map((level) => obstacleGroup(level, cs.filter((o) => o.criticality === level), openGroups, !!q)).join('') : empty}
       </section>
     </div>`;
 }
@@ -153,12 +162,15 @@ export function landmarkTemplate({ landmark, inRoutes }) {
     </article>`;
 }
 
+/** Tipo do empecilho; só os intransponíveis recebem a observação. */
+const typeLabel = (o) => `${esc(OBSTACLE_TYPES[o.type])}${o.passable ? '' : ' <span class="warn">(intransponível)</span>'}`;
+
 export function obstacleTemplate({ obstacle: o, isUser, inRoutes, onRoute }) {
   const c = CRITICALITY[o.criticality];
   return `
     <button class="back-btn" data-action="back">← Voltar</button>
     <article class="place">
-      <h2 class="place-title" tabindex="-1" data-autofocus>${esc(o.name)}</h2>
+      <h2 class="place-title" tabindex="-1" data-autofocus>${esc(displayName(o))}</h2>
       <div class="crit-banner" style="--c:${c.color}">
         ${criticalityBadge(o.criticality, { long: true })}
         <span>${esc(c.hint)}</span>
@@ -167,7 +179,7 @@ export function obstacleTemplate({ obstacle: o, isUser, inRoutes, onRoute }) {
       ${o.description ? `<p>${esc(o.description)}</p>` : ''}
       <dl class="facts">
         ${fact('Tipo', esc(OBSTACLE_TYPES[o.type]))}
-        ${fact('Transponível pelo rover', o.passable ? 'Sim (custo maior)' : '<span class="warn">Não — desvio obrigatório</span>')}
+        ${o.passable ? '' : fact('Transponível pelo rover', '<span class="warn">Não</span>')}
         ${fact('Raio', `${formatNumber(o.radiusM, 0)} m`)}
         ${fact('Inclinação', `${formatNumber(o.slopeDeg, 1)}°`)}
         ${fact('Severidade', formatNumber(o.severity, 2))}
@@ -288,11 +300,6 @@ function stopRow(stop, index, { options, picking, count }) {
     </li>`;
 }
 
-function exposureText(e) {
-  if (!e.crossed && !e.near) return 'Nenhum empecilho próximo';
-  return `${e.crossed} atravessado${e.crossed === 1 ? '' : 's'} · ${e.near} próximo${e.near === 1 ? '' : 's'}`;
-}
-
 function alternativeCard(route, selected) {
   const a = route.analysis;
   return `
@@ -303,12 +310,17 @@ function alternativeCard(route, selected) {
           <span>${formatDistance(a.distanceKm)} · ${sols(a.driveHours)}</span>
         </span>
         <span class="alt-tags">${route.tags.map((t) => `<em class="tag">${esc(t)}</em>`).join('')}</span>
-        <small>Exposição: ${exposureText(a.exposure)}${a.exposure.maxCriticality ? ` · máx. ${criticalityBadge(a.exposure.maxCriticality)}` : ''}</small>
+        <span class="chips">
+          <span class="chip-hazard" title="Soma de criticidade × severidade de cada empecilho; os apenas próximos pesam ¼. Menor = menos exposta.">Exposição: ${formatNumber(a.exposure.score, 1)} pontos</span>
+          <span>▲ ${formatElevation(a.ascentM)} ▼ ${formatElevation(a.descentM)}</span>
+          <span>Declive máx. ${formatNumber(a.maxSlopeDeg, 0)}°</span>
+          <span>${a.obstacles.length} empecilho${a.obstacles.length === 1 ? '' : 's'} no caminho</span>
+        </span>
       </button>
     </li>`;
 }
 
-export function routesTemplate({ stops, options, routes, selectedRouteId, picking, elapsedMs }) {
+export function routesTemplate({ stops, options, routes, selectedRouteId, picking }) {
   const failed = routes.length === 1 && !routes[0].ok ? routes[0] : null;
   const selected = routes.find((r) => r.ok && r.id === selectedRouteId);
   return `
@@ -319,35 +331,18 @@ export function routesTemplate({ stops, options, routes, selectedRouteId, pickin
       <button class="btn small ghost" data-action="clear-route">Limpar</button>
     </div>
     <div aria-live="polite">
-      ${!routes.length ? '<p class="empty">Escolha partida e destino. A rota desvia de empecilhos intransponíveis, encarece os transponíveis conforme a severidade e evita encostas íngremes do DEM.</p>' : ''}
       ${failed ? `<div class="alert" role="alert">${esc(failed.reason)}</div>` : ''}
       ${routes.length && !failed ? `
         <h3 class="section-title">Rotas possíveis (${routes.length})</h3>
-        <ul class="alts">${routes.map((r) => alternativeCard(r, r.id === selectedRouteId)).join('')}</ul>
-        <small class="muted">Calculadas em ${formatNumber(elapsedMs, 0)} ms. Clique numa rota cinza no mapa para selecioná-la.</small>` : ''}
+        <ul class="alts">${routes.map((r) => alternativeCard(r, r.id === selectedRouteId)).join('')}</ul>` : ''}
       ${selected ? routeDetailTemplate(selected) : ''}
     </div>`;
-}
-
-function stepNotes(notes) {
-  return notes
-    .map((n) => `<span class="step-note">${criticalityBadge(n.obstacle.criticality)} ${esc(n.obstacle.name)} ${n.crossed ? '— atravessa' : `a ${formatDistance(n.clearanceKm)} à ${n.side}`}</span>`)
-    .join('');
 }
 
 export function routeDetailTemplate(route) {
   const a = route.analysis;
   return `
-    <div class="summary">
-      <div class="summary-main">
-        <strong>${formatDuration(a.driveHours)}</strong>
-        <span>${formatDistance(a.distanceKm)} · ${sols(a.driveHours)} de condução</span>
-      </div>
-      <ul class="chips">
-        <li>▲ ${formatElevation(a.ascentM)} ▼ ${formatElevation(a.descentM)}</li>
-        <li>Declive máx. ${formatNumber(a.maxSlopeDeg, 0)}°</li>
-        <li class="chip-hazard">${a.obstacles.length} empecilho${a.obstacles.length === 1 ? '' : 's'} no caminho</li>
-      </ul>
+    <div class="route-actions">
       ${route.adjustments.map((adj) => `<p class="note">“${esc(adj.name)}” estava em área de risco; ponto ajustado em ${formatDistance(adj.km)}.</p>`).join('')}
       <div class="actions">
         <button class="btn primary" data-action="start-traverse">▶ Iniciar trajeto</button>
@@ -357,16 +352,8 @@ export function routeDetailTemplate(route) {
     <section><h3 class="section-title">Perfil de elevação (DEM 200 m)</h3>
       <div class="profile"><canvas id="profile" aria-label="Perfil de elevação da rota"></canvas><div id="profile-tip" class="profile-tip" hidden></div></div>
     </section>
-    <section><h3 class="section-title">Instruções</h3>
-      <ol class="steps">${a.steps.map((step, i) => `
-        <li><button class="step" data-action="focus-step" data-index="${i}">
-          <span class="step-icon ${step.kind}" aria-hidden="true"></span>
-          <span class="step-text">${esc(step.text)}${step.distanceKm > 0 ? `<small>${formatDistance(step.distanceKm)}</small>` : ''}${stepNotes(step.notes)}</span>
-        </button></li>`).join('')}
-      </ol>
-    </section>
-    <section><h3 class="section-title">Empecilhos mapeados no caminho</h3>
-      ${a.obstacles.length ? `<ul class="list">${a.obstacles.map((i) => obstacleItem(i.obstacle, ` · km ${formatNumber(i.alongKm, 2)} · ${i.crossed ? 'atravessa' : `folga ${formatDistance(i.clearanceKm)} à ${i.side}`}`)).join('')}</ul>` : '<p class="muted">Nenhum empecilho a menos de 150 m da rota.</p>'}
+    <section><h3 class="section-title">Empecilhos próximos da rota</h3>
+      ${a.obstacles.length ? `<ul class="list">${a.obstacles.map((i) => obstacleItem(i.obstacle, `${esc(OBSTACLE_TYPES[i.obstacle.type])}, ${i.crossed ? 'na rota' : `${formatNumber(i.clearanceKm * 1000, 0)} metros da rota`}`)).join('')}</ul>` : '<p class="muted">Nenhum empecilho a menos de 150 m da rota.</p>'}
     </section>`;
 }
 
@@ -384,6 +371,7 @@ export function traverseTemplate({ traverse, route }) {
   const finished = status === 'completed' || status === 'stopped';
   return `
     <div class="traverse">
+      <h2 class="traverse-title">${esc(route.stops.map((s) => s.name).join(' → '))}</h2>
       <div class="traverse-status status-${status}">
         ${{ running: '● Em percurso', paused: '❚❚ Pausado', completed: '✓ Trajeto concluído', stopped: '■ Trajeto interrompido' }[status]}
       </div>
@@ -400,20 +388,20 @@ export function traverseTemplate({ traverse, route }) {
         <div class="actions"><button class="btn primary" data-action="close-traverse">Fechar</button></div>` : `
         <div class="actions">
           ${status === 'running' ? '<button class="btn" data-action="pause-traverse">❚❚ Pausar</button>' : '<button class="btn primary" data-action="resume-traverse">▶ Retomar</button>'}
+          <span class="vsep" aria-hidden="true"></span>
           ${confirmStop ? `
-            <span class="confirm">Interromper o trajeto?
-              <button class="btn danger" data-action="confirm-stop">Sim, parar</button>
-              <button class="btn ghost" data-action="cancel-stop">Continuar</button>
-            </span>` : '<button class="btn danger" data-action="stop-traverse">■ Parar trajeto</button>'}
+            <span class="confirm">
+              <button class="btn danger" data-action="confirm-stop">Confirmar</button>
+              <button class="btn ghost" data-action="cancel-stop">Voltar</button>
+            </span>` : '<button class="btn danger" data-action="stop-traverse">■ Parar</button>'}
         </div>
-        <div class="form-row">
+        <div class="form-row traverse-options">
           <label>Velocidade da simulação
             <select id="tr-speed">${SPEEDS.map((s) => `<option value="${s.value}" ${s.value === speed ? 'selected' : ''}>${s.label}</option>`).join('')}</select>
           </label>
           <label class="check"><input type="checkbox" id="tr-follow" ${follow ? 'checked' : ''}> Seguir o rover</label>
         </div>
-        <p class="hint">Encontrou algo inesperado? Clique com o botão direito no mapa → “Registrar empecilho aqui”. A rota restante é verificada na hora.</p>`}
-      <p class="muted">Rota: ${esc(route.stops.map((s) => s.name).join(' → '))}</p>
+        <p class="hint">Encontrou algo inesperado? Clique com o botão direito no mapa.</p>`}
     </div>`;
 }
 
@@ -439,47 +427,4 @@ export function historyTemplate({ routes, previewId }) {
         <button class="btn small ghost" data-action="delete-history" data-id="${esc(r.id)}" aria-label="Excluir rota salva">Excluir</button>
       </div>
     </li>`).join('')}</ul>`;
-}
-
-export const LOG_LABELS = Object.freeze({
-  'sample.created': 'Ponto científico registrado',
-  'sample.deleted': 'Ponto científico excluído',
-  'obstacle.created': 'Empecilho registrado',
-  'obstacle.deleted': 'Empecilho excluído',
-  'traverse.started': 'Trajeto iniciado',
-  'traverse.paused': 'Trajeto pausado',
-  'traverse.resumed': 'Trajeto retomado',
-  'traverse.stopped': 'Trajeto interrompido',
-  'traverse.completed': 'Trajeto concluído',
-  'traverse.blocked': 'Rota bloqueada por empecilho',
-  'traverse.rerouted': 'Rota recalculada',
-});
-
-export const LOG_FILTERS = Object.freeze({
-  all: { label: 'Tudo', match: () => true },
-  sample: { label: 'Pontos científicos', match: (t) => t.startsWith('sample.') },
-  obstacle: { label: 'Pontos críticos', match: (t) => t.startsWith('obstacle.') },
-  traverse: { label: 'Trajetos', match: (t) => t.startsWith('traverse.') },
-});
-
-export function logTemplate({ entries, filter }) {
-  const list = entries.filter((e) => LOG_FILTERS[filter].match(e.type)).reverse();
-  return `
-    <div class="log-tools">
-      <label>Filtrar
-        <select id="log-filter">${Object.entries(LOG_FILTERS).map(([k, f]) => `<option value="${k}" ${k === filter ? 'selected' : ''}>${f.label}</option>`).join('')}</select>
-      </label>
-    </div>
-    <div class="actions">
-      <button class="btn small" data-action="export" data-what="obstacles">⭳ Empecilhos (CSV)</button>
-      <button class="btn small" data-action="export" data-what="samples">⭳ Amostras (CSV)</button>
-      <button class="btn small" data-action="export" data-what="log">⭳ Registro (JSON)</button>
-    </div>
-    <p class="hint">Os CSVs exportados mantêm as colunas e o formato dos datasets originais, incluindo os registros novos.</p>
-    ${list.length ? `<ol class="log">${list.map((e) => `
-      <li class="log-entry log-${esc(e.type.split('.')[0])}">
-        <div class="log-head"><strong>${esc(LOG_LABELS[e.type] ?? e.type)}</strong><small class="muted">${esc(formatDate(e.timestamp))} · Sol ${esc(e.sol)}</small></div>
-        <span>${esc(e.message)}</span>
-        ${e.entityId ? `<code>${esc(e.entityId)}</code>` : ''}
-      </li>`).join('')}</ol>` : '<p class="empty">Nenhum evento registrado.</p>'}`;
 }

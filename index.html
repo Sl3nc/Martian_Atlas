@@ -35,17 +35,6 @@
               <label><input type="checkbox" data-layer="obstacles" /> Empecilhos</label>
               <label><input type="checkbox" data-layer="samples" /> Pontos científicos</label>
               <label><input type="checkbox" data-layer="slope" /> Declividade</label>
-              <label><input type="checkbox" data-layer="grid" /> Grade lat/lon</label>
-              <label><input type="checkbox" data-layer="labels" /> Rótulos</label>
-              <label class="select-label">Criticidade mínima
-                <select id="min-crit">
-                  <option value="1">1 · todas</option>
-                  <option value="2">2 ou mais</option>
-                  <option value="3">3 ou mais</option>
-                  <option value="4">4 ou mais</option>
-                  <option value="5">só 5</option>
-                </select>
-              </label>
             </fieldset>
             <ul class="legend" aria-label="Legenda">
               <li><span class="crit-scale" aria-hidden="true"><i style="--c:#6fcf7c"></i><i style="--c:#c9de55"></i><i style="--c:#ffc23d"></i><i style="--c:#ff8a3d"></i><i style="--c:#ff4d5e"></i></span> Criticidade 1 → 5</li>
@@ -88,7 +77,6 @@
           <button role="tab" id="tab-explore" data-tab="explore" aria-controls="panel">Explorar</button>
           <button role="tab" id="tab-routes" data-tab="routes" aria-controls="panel">Rotas</button>
           <button role="tab" id="tab-history" data-tab="history" aria-controls="panel">Histórico</button>
-          <button role="tab" id="tab-log" data-tab="log" aria-controls="panel">Registro</button>
         </nav>
         <div id="panel" class="panel" role="tabpanel"></div>
       </aside>

@@ -24,17 +24,15 @@ import {
   toEastingNorthing,
 } from './core/geo.js';
 import { loadDatasets, DATA_FILES } from './data/datasets.js';
-import { toCsv } from './model/csv.js';
 import {
-  OBSTACLE_COLUMNS,
   CRITICALITY,
   DEFAULT_SEVERITY,
   createUserObstacle,
   isUserObstacle,
   nextUserObstacleId,
-  serializeObstacle,
+  displayName,
 } from './model/obstacles.js';
-import { SAMPLE_COLUMNS, createSample, serializeSample } from './model/samples.js';
+import { createSample } from './model/samples.js';
 import { MapView, SAMPLE_COLORS } from './ui/mapView.js';
 import { ElevationProfile } from './ui/profile.js';
 import { renderRelief, renderSlope, loadImage } from './ui/terrainRenderer.js';
@@ -44,7 +42,7 @@ import * as T from './ui/templates.js';
 const $ = (selector) => document.querySelector(selector);
 
 const state = {
-  tab: 'explore', // explore | routes | history | log
+  tab: 'explore', // explore | routes | history
   overlay: null, // detalhe ou formulário aberto por cima da aba
   query: '',
   placing: null, // 'sample' | 'obstacle' enquanto o usuário escolhe o local no mapa
@@ -52,13 +50,11 @@ const state = {
   picking: -1,
   routes: [],
   selectedRouteId: null,
-  routesElapsedMs: 0,
   traverse: null,
   userSamples: [],
-  log: [],
   history: [],
   historyPreviewId: null,
-  logFilter: 'all',
+  openGroups: new Set(), // níveis de criticidade com o acordeão aberto (aba Explorar)
 };
 
 let data; // datasets carregados
@@ -84,30 +80,6 @@ function showToast(message) {
   toast.classList.add('visible');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('visible'), 4200);
-}
-
-function logEvent(type, message, { entityId = null, data: payload = null } = {}) {
-  state.log.push({
-    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-    timestamp: new Date().toISOString(),
-    sol: estimateMissionSol(),
-    type,
-    entityId,
-    message,
-    data: payload,
-  });
-  storage.saveLog(state.log);
-}
-
-function download(filename, content, mime) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ---------- Paradas ----------
@@ -154,9 +126,7 @@ function computeRoutes({ fit = true } = {}) {
     state.selectedRouteId = null;
     return;
   }
-  const t0 = performance.now();
   state.routes = planAlternatives(world, stops, { count: 3 });
-  state.routesElapsedMs = performance.now() - t0;
   state.selectedRouteId = state.routes[0]?.ok ? state.routes[0].id : null;
   if (fit && state.selectedRouteId != null) {
     map.fitBounds(boundsOf(state.routes.flatMap((r) => r.analysis.path)), { padding: 70 });
@@ -284,18 +254,15 @@ function panelHtml() {
       routes: state.routes,
       selectedRouteId: state.selectedRouteId,
       picking: state.picking,
-      elapsedMs: state.routesElapsedMs,
     });
   }
   if (state.tab === 'history') return T.historyTemplate({ routes: state.history, previewId: state.historyPreviewId });
-  if (state.tab === 'log') return T.logTemplate({ entries: state.log, filter: state.logFilter });
   return T.exploreTemplate({
     query: state.query,
     landmarks: data.landmarks,
     samples: allSamples(),
-    userSampleIds: userSampleIds(),
-    criticalObstacles: world.obstacles.filter((ob) => ob.criticality >= 4 && !isUserObstacle(ob)),
-    userObstacles: world.obstacles.filter(isUserObstacle),
+    obstacles: world.obstacles,
+    openGroups: state.openGroups,
   });
 }
 
@@ -369,10 +336,6 @@ function afterRender() {
 
   $('#tr-speed')?.addEventListener('change', (e) => (state.traverse.speed = Number(e.target.value)));
   $('#tr-follow')?.addEventListener('change', (e) => (state.traverse.follow = e.target.checked));
-  $('#log-filter')?.addEventListener('change', (e) => {
-    state.logFilter = e.target.value;
-    render();
-  });
   if (state.traverse && (state.tab === 'routes' || state.traverse.status === 'running')) updateTraverseUi();
 }
 
@@ -441,7 +404,6 @@ function startTraverse() {
     reroutes: 0,
     traveledPath: [], // trechos já percorridos antes de cada recálculo
   };
-  logEvent('traverse.started', `${route.stops.map((s) => s.name).join(' → ')} · ${formatDistance(route.analysis.distanceKm)}`);
   map.flyTo({ x: route.stops[0].x, y: route.stops[0].y, scale: Math.max(map.view.scale, 400) });
   render();
   resumeLoop();
@@ -509,10 +471,6 @@ function finishTraverse(status) {
     reroutes: tr.reroutes,
   });
   storage.saveRoutes(state.history);
-  logEvent(
-    status === 'completed' ? 'traverse.completed' : 'traverse.stopped',
-    `${formatDistance(traveledKm)} percorridos em ${formatDuration(elapsedHours)}${status === 'stopped' ? ` · faltavam ${formatDistance(st.remainingKm)}` : ''}`,
-  );
   render();
   showToast(status === 'completed' ? 'Trajeto concluído e salvo no histórico.' : 'Trajeto interrompido e salvo no histórico.');
 }
@@ -534,10 +492,9 @@ function checkTraverseAfter(obstacle) {
     cancelAnimationFrame(frame);
     tr.status = 'paused';
     tr.warning = {
-      message: `“${obstacle.name}” (criticidade ${obstacle.criticality}) bloqueia a rota ${formatDistance(Math.max(0, blocked.d - st.distanceKm))} à frente. Trajeto pausado.`,
+      message: `“${displayName(obstacle)}” (criticidade ${obstacle.criticality}) bloqueia a rota ${formatDistance(Math.max(0, blocked.d - st.distanceKm))} à frente. Trajeto pausado.`,
       canReroute: true,
     };
-    logEvent('traverse.blocked', tr.warning.message, { entityId: obstacle.id });
     return true;
   }
   const crosses = tr.route.analysis.samples.some(
@@ -545,7 +502,7 @@ function checkTraverseAfter(obstacle) {
   );
   if (crosses) {
     tr.warning = {
-      message: `A rota atravessa “${obstacle.name}” (transponível, criticidade ${obstacle.criticality}). Recalcular pode evitá-lo.`,
+      message: `A rota atravessa “${displayName(obstacle)}” (criticidade ${obstacle.criticality}). Recalcular pode evitá-lo.`,
       canReroute: true,
     };
     return true;
@@ -574,7 +531,6 @@ function reroute() {
   tr.reroutes++;
   tr.warning = null;
   tr.status = 'running';
-  logEvent('traverse.rerouted', `Nova rota: ${formatDistance(route.analysis.distanceKm)} · ${formatDuration(route.analysis.driveHours)} até ${remaining.at(-1)?.name}`);
   render();
   resumeLoop();
 }
@@ -600,7 +556,6 @@ function submitSample(form) {
   const sample = result.sample;
   state.userSamples.push(sample);
   if (!storage.saveUserSamples(state.userSamples)) showToast('Registrado, mas não foi possível salvar no navegador.');
-  logEvent('sample.created', `${sample.targetName} (${sample.type}, Sol ${sample.sol})`, { entityId: sample.id, data: serializeSample(sample) });
   state.overlay = { type: 'sample', id: sample.id };
   render({ focus: true });
   showToast(`Ponto científico ${sample.id} registrado.`);
@@ -641,11 +596,6 @@ function submitObstacle(form) {
   const obstacle = result.obstacle;
   addObstacle(world, obstacle);
   persistUserObstacles();
-  logEvent(
-    'obstacle.created',
-    `${obstacle.name} · ${obstacle.type} · criticidade ${obstacle.criticality} (${CRITICALITY[obstacle.criticality].label}) · ${obstacle.passable ? 'transponível' : 'intransponível'}`,
-    { entityId: obstacle.id, data: serializeObstacle(obstacle) },
-  );
   state.overlay = null;
   if (checkTraverseAfter(obstacle)) {
     state.tab = 'routes';
@@ -744,10 +694,6 @@ const actions = {
     state.selectedRouteId = Number(el.dataset.id);
     render();
   },
-  'focus-step': (el) => {
-    const step = selectedRoute()?.analysis.steps[Number(el.dataset.index)];
-    if (step) map.flyTo({ x: step.at.x, y: step.at.y, scale: Math.max(map.view.scale, 500) });
-  },
   'save-route': () => {
     const route = selectedRoute();
     state.history.push({
@@ -767,13 +713,11 @@ const actions = {
   'pause-traverse': () => {
     cancelAnimationFrame(frame);
     state.traverse.status = 'paused';
-    logEvent('traverse.paused', `Pausado com ${formatDistance(state.traverse.sim.state().remainingKm)} restantes`);
     render();
   },
   'resume-traverse': () => {
     state.traverse.status = 'running';
     state.traverse.warning = null;
-    logEvent('traverse.resumed', 'Trajeto retomado');
     render();
     resumeLoop();
   },
@@ -798,7 +742,6 @@ const actions = {
     state.userSamples = state.userSamples.filter((s) => s.id !== id);
     storage.saveUserSamples(state.userSamples);
     state.stops = state.stops.map((s) => (s?.ref === `sample:${id}` ? null : s));
-    logEvent('sample.deleted', `Ponto científico ${id} excluído`, { entityId: id });
     state.overlay = null;
     render();
   },
@@ -806,7 +749,6 @@ const actions = {
     const id = el.dataset.id;
     removeObstacle(world, id);
     persistUserObstacles();
-    logEvent('obstacle.deleted', `Empecilho ${id} excluído`, { entityId: id });
     state.overlay = null;
     if (state.routes.length && !state.traverse) computeRoutes({ fit: false });
     render();
@@ -830,17 +772,6 @@ const actions = {
     state.history = state.history.filter((h) => h.id !== el.dataset.id);
     storage.saveRoutes(state.history);
     render();
-  },
-  export: (el) => {
-    const stamp = new Date().toISOString().slice(0, 10);
-    if (el.dataset.what === 'obstacles') {
-      const csv = toCsv(world.obstacles.map(serializeObstacle), OBSTACLE_COLUMNS, { quoteAll: true, bom: true, newline: '\r\n' });
-      download(`jezero_obstacles_${stamp}.csv`, csv, 'text/csv;charset=utf-8');
-    } else if (el.dataset.what === 'samples') {
-      download(`M2020_amostras_${stamp}.csv`, toCsv(allSamples().map(serializeSample), SAMPLE_COLUMNS), 'text/csv;charset=utf-8');
-    } else {
-      download(`martian_atlas_registro_${stamp}.json`, JSON.stringify(state.log, null, 2), 'application/json');
-    }
   },
 };
 
@@ -960,6 +891,17 @@ function bindGlobalEvents() {
     const el = e.target.closest('[data-action]');
     if (el && actions[el.dataset.action]) actions[el.dataset.action](el);
   });
+  // Lembra quais acordeões o usuário abriu. Usa o clique no <summary> (também disparado
+  // por Enter/Espaço) em vez de 'toggle', que dispara até na abertura automática da busca.
+  panel.addEventListener('click', (e) => {
+    const summary = e.target.closest('details[data-group] > summary');
+    if (!summary || state.query.trim()) return;
+    const group = summary.parentElement;
+    const level = Number(group.dataset.group);
+    // O clique roda antes de o navegador alternar `open`: o novo estado é o inverso.
+    if (group.open) state.openGroups.delete(level);
+    else state.openGroups.add(level);
+  });
   panel.addEventListener('pointerdown', (e) => {
     const handle = e.target.closest('[data-drag-index]');
     if (handle) startStopDrag(e, handle);
@@ -1031,7 +973,6 @@ function bindGlobalEvents() {
     const t = e.target;
     if (t.name === 'base') map.setBase(t.value);
     else if (t.dataset.layer) map.setLayer(t.dataset.layer, t.checked);
-    else if (t.id === 'min-crit') map.setMinCriticality(Number(t.value));
   });
   window.addEventListener('resize', () => profile?.resize());
 }
@@ -1061,7 +1002,6 @@ async function init() {
   data = loaded;
   world = createWorld({ dem: data.dem, obstacles: [...data.obstacles, ...storage.loadUserObstacles()] });
   state.userSamples = storage.loadUserSamples().filter((s) => !data.samples.some((b) => b.id === s.id));
-  state.log = storage.loadLog();
   state.history = storage.loadRoutes();
 
   const relief = renderRelief(world);

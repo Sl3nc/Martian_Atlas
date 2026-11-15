@@ -8,10 +8,8 @@ import { parseSample, serializeSample } from '../model/samples.js';
 const KEYS = {
   obstacles: 'martian-atlas:v2:obstacles',
   samples: 'martian-atlas:v2:samples',
-  log: 'martian-atlas:v2:log',
   routes: 'martian-atlas:v2:routes',
 };
-const MAX_LOG_ENTRIES = 1000;
 const MAX_ROUTES = 50;
 
 function read(key) {
@@ -49,9 +47,6 @@ export const saveUserObstacles = (items) => write(KEYS.obstacles, items.map(seri
 
 export const loadUserSamples = () => parseValid(read(KEYS.samples), parseSample);
 export const saveUserSamples = (items) => write(KEYS.samples, items.map(serializeSample));
-
-export const loadLog = () => read(KEYS.log).filter((e) => e && typeof e.type === 'string' && typeof e.timestamp === 'string');
-export const saveLog = (entries) => write(KEYS.log, entries.slice(-MAX_LOG_ENTRIES));
 
 const validPoint = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y);
 export const loadRoutes = () =>

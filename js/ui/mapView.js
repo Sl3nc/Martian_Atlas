@@ -3,16 +3,9 @@
 // Comunica-se com o app apenas por callbacks (handlers).
 
 import { clamp, closestPointOnSegment } from '../lib/math.js';
-import {
-  MAP_WIDTH_KM,
-  MAP_HEIGHT_KM,
-  KM_PER_DEG_LAT,
-  kmToLonLat,
-  lonLatToKm,
-  formatNumber,
-} from '../core/geo.js';
+import { MAP_WIDTH_KM, MAP_HEIGHT_KM } from '../core/geo.js';
 import { BLOCK_MARGIN_KM } from '../core/world.js';
-import { CRITICALITY } from '../model/obstacles.js';
+import { CRITICALITY, displayName } from '../model/obstacles.js';
 
 const MIN_SCALE = 8; // px por km
 const MAX_SCALE = 4000;
@@ -53,8 +46,7 @@ export class MapView {
     this.handlers = handlers;
     this.view = { cx: MAP_WIDTH_KM / 2, cy: MAP_HEIGHT_KM / 2, scale: 20 };
     this.base = images.satellite ? 'satellite' : 'relief';
-    this.layers = { obstacles: true, samples: true, slope: false, grid: false, labels: true };
-    this.minCriticality = 1;
+    this.layers = { obstacles: true, samples: true, slope: false };
     this.getInsets = () => ({ left: 0, right: 0, top: 0, bottom: 0 });
     this.state = {
       markers: [], // { id, kind: 'sample' | 'landmark', x, y, name, color, user }
@@ -89,11 +81,6 @@ export class MapView {
 
   setLayer(name, visible) {
     this.layers[name] = visible;
-    this.requestDraw();
-  }
-
-  setMinCriticality(level) {
-    this.minCriticality = level;
     this.requestDraw();
   }
 
@@ -347,7 +334,7 @@ export class MapView {
 
   #visibleObstacles() {
     if (!this.layers.obstacles) return [];
-    return this.world.obstacles.filter((o) => o.criticality >= this.minCriticality);
+    return [...this.world.obstacles];
   }
 
   /** O que está sob o ponto de tela: marcador, empecilho ou rota alternativa. */
@@ -406,7 +393,6 @@ export class MapView {
     const base = this.base === 'satellite' && this.images.satellite ? this.images.satellite : this.images.relief;
     this.#drawRaster(base);
     if (this.layers.slope) this.#drawRaster(this.images.slope);
-    if (this.layers.grid) this.#drawGraticule();
     this.#drawObstacles();
     this.#drawRoutes();
     const history = this.state.historyPath;
@@ -446,39 +432,6 @@ export class MapView {
       (x1 - x0) * this.view.scale,
       (y1 - y0) * this.view.scale,
     );
-  }
-
-  #drawGraticule() {
-    const { ctx } = this;
-    const { tl, br } = this.bounds;
-    const steps = [0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001, 0.0005];
-    const step = steps.find((s) => s * KM_PER_DEG_LAT * this.view.scale <= 220) ?? 0.0005;
-    const digits = Math.max(1, Math.ceil(-Math.log10(step)));
-    const a = kmToLonLat(tl.x, br.y);
-    const b = kmToLonLat(br.x, tl.y);
-    const ins = this.getInsets();
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.lineWidth = 1;
-    ctx.font = '11px system-ui, sans-serif';
-    for (let lon = Math.ceil(a.lon / step) * step; lon <= b.lon; lon += step) {
-      const sx = this.worldToScreen(lonLatToKm(lon, 0).x, 0).x;
-      ctx.beginPath();
-      ctx.moveTo(sx, 0);
-      ctx.lineTo(sx, this.height);
-      ctx.stroke();
-      ctx.fillText(`${formatNumber(lon, digits)}° L`, sx + 4, ins.top + 34);
-    }
-    for (let lat = Math.ceil(a.lat / step) * step; lat <= b.lat; lat += step) {
-      const sy = this.worldToScreen(0, lonLatToKm(0, lat).y).y;
-      ctx.beginPath();
-      ctx.moveTo(0, sy);
-      ctx.lineTo(this.width, sy);
-      ctx.stroke();
-      ctx.fillText(`${formatNumber(lat, digits)}° N`, ins.left + 6, sy - 4);
-    }
-    ctx.restore();
   }
 
   #drawObstacles() {
@@ -538,8 +491,8 @@ export class MapView {
         ctx.lineWidth = 3;
         ctx.stroke();
       }
-      if (this.layers.labels && o.criticality >= 4 && this.view.scale > 250) {
-        this.#label(o.name, p.x + rr + 4, p.y + 4, { size: 11, color: '#ffe3d6' });
+      if (o.criticality >= 4 && this.view.scale > 250) {
+        this.#label(displayName(o), p.x + rr + 4, p.y + 4, { size: 11, color: '#ffe3d6' });
       }
     }
     ctx.restore();
@@ -722,7 +675,7 @@ export class MapView {
         labels.push({ text: stop.name, x: p.x + 15, y: p.y - PIN_HEAD_OFFSET + 4, priority: 2 });
       }
     });
-    if (this.layers.labels) this.#drawLabels(labels);
+    this.#drawLabels(labels);
   }
 
   #drawLabels(labels) {

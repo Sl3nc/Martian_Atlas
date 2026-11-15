@@ -25,7 +25,7 @@ npm test       # modelo de dados, pathfinding, rotas e simulação do trajeto
 | `dem_jezero_200m.bin` + `.json` | elevação real (int16, 364×186) | recorte do *Mars HRSC-MOLA Blended DEM 200 m v2* (USGS) |
 
 Os dois CSVs são **o modelo de dados**: `js/model/obstacles.js` e `js/model/samples.js` validam cada
-linha, e todo registro novo é criado, salvo e exportado com as mesmas colunas e convenções
+linha, e todo registro novo é criado, salvo e salvo com as mesmas colunas e convenções
 (aspas/BOM/CRLF no de empecilhos; `sample_id` `M2020-SSSSS-NN`, easting/northing na mesma projeção
 equiretangular com latitude de escala 18,4663°).
 
@@ -40,13 +40,12 @@ equiretangular com latitude de escala 18,4663°).
 | Todas as rotas possíveis | Até 3 alternativas distintas (mais rápida / mais curta / menos exposta) |
 | Tempo de trajeto e distância restante | Painel de acompanhamento, atualizado em tempo real |
 | Acompanhar o trajeto | “Iniciar trajeto”: rover simulado, câmera segue, velocidade ajustável |
-| Parar o trajeto | “Pausar” / “Parar trajeto” (com confirmação) |
+| Parar o trajeto | “Pausar” / “Parar” (com confirmação) |
 | Empecilho surpresa | Registrar durante o trajeto → verificação imediata → “Recalcular rota a partir daqui” |
 | Salvar rotas passadas | Aba **Histórico** (concluídas, interrompidas e planejadas): ver no mapa, refazer |
-| Logging e registro | Aba **Registro**: eventos com data e sol; exporta CSVs e log JSON |
 | Camadas relevo / satélite | Botão de camadas: mapa base + empecilhos, amostras, declividade, grade |
 
-Pontos, empecilhos, log e histórico ficam no `localStorage` do navegador.
+Pontos, empecilhos e histórico ficam no `localStorage` do navegador.
 
 ## Como a rota é calculada
 
