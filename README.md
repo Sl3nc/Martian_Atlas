@@ -41,6 +41,8 @@ Routes are computed with **A\*** over a cost grid. If an explorer meets a surpri
 
 During the hackathon we asked a NASA mentor, in the open forum:
 
+Mars Surface Datasets & Obstacle Logging- Interplanetary Survival Guide: https://github.com/nasa/spaceapps/discussions/2168
+
 1. _Does NASA currently have an existing system for logging surface incidents/obstacles and using that historical data for route planning on Mars?_
 2. _Are there any open datasets or specific tools (like Mars Trek or rover path logs) that you recommend we use as a base?_
 
