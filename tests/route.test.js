@@ -1,4 +1,4 @@
-import { test, before } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadWorld } from './helpers.js';
 import { addObstacle, removeObstacle, isTraversableAt } from '../js/core/world.js';
@@ -7,13 +7,8 @@ import { TraverseSimulation } from '../js/core/traverse.js';
 import { createUserObstacle } from '../js/model/obstacles.js';
 import { kmToLonLat } from '../js/core/geo.js';
 
-let world;
-let data;
+const { world, data } = await loadWorld();
 const stop = (p) => ({ x: p.x, y: p.y, name: p.name ?? p.targetName });
-
-before(async () => {
-  ({ world, data } = await loadWorld());
-});
 
 test('datasets carregam sem erros e o DEM tem valores plausíveis para Jezero', () => {
   assert.equal(data.errors.length, 0);
